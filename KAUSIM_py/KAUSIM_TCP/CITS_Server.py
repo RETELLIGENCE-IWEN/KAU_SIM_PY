@@ -49,8 +49,8 @@ class CITS_SERVER:
         # print("packet : ", self.CITS_REQ_TYPE[RQtype] + ":" + RQID)
 
         if RQtype == 6:
-            
             data = self.CITS_REQ_TYPE[RQtype] + "+" + str(RQID)
+            
         else:
             data = self.CITS_REQ_TYPE[RQtype] + ":" + str(RQID)
 
