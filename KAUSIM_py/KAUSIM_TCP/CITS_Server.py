@@ -22,8 +22,9 @@ class CITS_SERVER:
         self.UNIT_CITS_T3  = 6
         self.UNIT_CITS_T4  = 7
 
+
         #Types
-        self.CITS_REQ_TYPE = ["CITS_Info_Vehicle", "CITS_Info_TrafficLight", "CITS_Info_Traffic_Stats", "CITS_Info_All_Traffic_Stats", "CITS_Info_Accident", "CITS_Info_FB_Distance"]
+        self.CITS_REQ_TYPE = ["CITS_Info_Vehicle", "CITS_Info_TrafficLight", "CITS_Info_Traffic_Stats", "CITS_Info_All_Traffic_Stats", "CITS_Info_Accident", "CITS_Info_FB_Distance", "EXT_SIM_RESET"]
 
 
     # def SetUp(self):
@@ -47,7 +48,11 @@ class CITS_SERVER:
         # print("type : ", self.CITS_REQ_TYPE[RQtype])
         # print("packet : ", self.CITS_REQ_TYPE[RQtype] + ":" + RQID)
 
-        data = self.CITS_REQ_TYPE[RQtype] + ":" + str(RQID)
+        if RQtype == 6:
+            
+            data = self.CITS_REQ_TYPE[RQtype] + "+" + str(RQID)
+        else:
+            data = self.CITS_REQ_TYPE[RQtype] + ":" + str(RQID)
 
         # len(data)
         # self.Client.sendall(int.to_bytes(len(data), 4, byteorder=sys.byteorder))
