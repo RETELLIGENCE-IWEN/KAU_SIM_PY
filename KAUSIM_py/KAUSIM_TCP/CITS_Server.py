@@ -43,16 +43,52 @@ class CITS_SERVER:
         # self.SS.close()
 
 
+
+    def Reset_Request(self, x,y,z, xr,yr,zr):
+
+        data = self.CITS_REQ_TYPE[6] + "+"
+        data += str(x) + "^" + str(y) + "^" + str(z) + "^"
+        data += str(xr) + "^" + str(yr) + "^" + str(zr)
+
+
+        print("Sending : ", data)
+        self.Client.sendall(data.encode())
+
+
+        try:
+            data = self.Client.recv(1024)
+
+            if not data: 
+                print('Disconnected by ' + self.clADDR[0],':', self.clADDR[1])
+                return()
+
+            print('Received from ' + self.clADDR[0],':', self.clADDR[1] , data.decode())
+
+
+        except ConnectionResetError as e:
+
+            print('Disconnected')
+            return()
+        
+        except ConnectionAbortedError as e:
+            pass
+
+
+
+
+
+        
+
     def CITS_Request(self, RQtype, RQID):
         
         # print("type : ", self.CITS_REQ_TYPE[RQtype])
         # print("packet : ", self.CITS_REQ_TYPE[RQtype] + ":" + RQID)
 
-        if RQtype == 6:
-            data = self.CITS_REQ_TYPE[RQtype] + "+" + str(RQID)
-            
-        else:
-            data = self.CITS_REQ_TYPE[RQtype] + ":" + str(RQID)
+        # if RQtype == 6:
+        #     data = self.CITS_REQ_TYPE[RQtype] + "+" + str(RQID)
+
+        # else:
+        data = self.CITS_REQ_TYPE[RQtype] + ":" + str(RQID)
 
         # len(data)
         # self.Client.sendall(int.to_bytes(len(data), 4, byteorder=sys.byteorder))
