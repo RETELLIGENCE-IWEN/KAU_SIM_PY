@@ -30,7 +30,10 @@ for line in range(len(F)):
 
 norm = np.linalg.norm(arr)
 
-n_arr = arr / norm * 255
+n_arr = arr / norm * 255 + 255
+print(n_arr)
+
+
 
 data = im.fromarray(n_arr)
 data = data.convert("L")
