@@ -3,6 +3,8 @@ from PIL import Image as im
 
 print()
 
+Mmax = -5000
+Mmin = 0
 
 F = open("KAU_Height.txt", 'r') 
 F = F.readlines()
@@ -26,11 +28,16 @@ for line in range(len(F)):
     # print(x,y)
     arr[y][x] = v
 
+    if v > Mmax: Mmax = v
+
+    if v > -5000 and v < Mmin: Mmin = v
 
 
+L_range = Mmax - Mmin
+print("MAX = ", Mmax, "MIN = ", Mmin, "Range : ", L_range)
 norm = np.linalg.norm(arr)
 
-n_arr = arr / norm * 255 + 255
+n_arr = arr / norm * 255 + 100
 print(n_arr)
 
 
