@@ -13,13 +13,22 @@ ylen = int(F[-1].split(",")[1].split(":")[0]) + 1
 
 arr = np.zeros((ylen, xlen))
 
-# print(arr.shape)
+print(arr.shape)
 
 for line in range(len(F)):
-    arr[int(F[line].split(",")[0])][int(F[line].split(",")[1].split(":")[0])] = F[line].split(":")[1]
+    
+    s = F[line].split(",")
+    x = int(s[0])
+    c = s[1].split(":")
+    y = int(c[0])
+    v = float(c[1])
+
+    # print(x,y)
+    arr[y][x] = v
 
 
 data = im.fromarray(arr)
+data = data.convert("L")
 data.save('KAU_Hmap.png')
 
 
