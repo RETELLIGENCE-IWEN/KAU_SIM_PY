@@ -27,7 +27,12 @@ for line in range(len(F)):
     arr[y][x] = v
 
 
-data = im.fromarray(arr)
+
+norm = np.linalg.norm(arr)
+
+n_arr = arr / norm
+
+data = im.fromarray(n_arr)
 data = data.convert("L")
 data.save('KAU_Hmap.png')
 
