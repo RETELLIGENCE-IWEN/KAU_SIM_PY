@@ -15,7 +15,7 @@ ylen = int(F[-1].split(",")[1].split(":")[0]) + 1
 
 arr = np.zeros((ylen, xlen))
 
-print(arr.shape)
+# print(arr.shape)
 
 for line in range(len(F)):
     
@@ -35,14 +35,17 @@ for line in range(len(F)):
 
 L_range = Mmax - Mmin
 print("MAX = ", Mmax, "MIN = ", Mmin, "Range : ", L_range)
-norm = np.linalg.norm(arr)
+# norm = np.linalg.norm(arr)
 
-n_arr = arr / norm * 255 + 100
-print(n_arr)
+# n_arr = arr / norm * 255 + 100
+
+m_arr = (arr-Mmin)/L_range*255
+
+# print(n_arr)
 
 
 
-data = im.fromarray(n_arr)
+data = im.fromarray(m_arr)
 data = data.convert("L")
 data.save('KAU_Hmap.png')
 
