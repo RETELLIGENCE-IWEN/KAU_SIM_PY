@@ -66,33 +66,33 @@ class WP_Data:
 
 
 
+if __name__ == "__main__":
+    # Example Useage ####################################################
 
-# Example Useage ####################################################
-
-# My = WP_Data("C:/Users/ailish7/Documents/AirSim/WayPoints.txt", None)
-My = WP_Data("WayPoints.txt", None)
-
-
-if My.IsFileOpen: Got_WP = My.ReadData(4,"WP")
-
-if Got_WP:
-    print(Got_WP.X)
-    print(Got_WP.Y)
-    print(Got_WP.Z)
-    print(Got_WP.Xoff)
-    print(Got_WP.Zoff)
-    print(Got_WP.Yoff, "\n")
+    # My = WP_Data("C:/Users/ailish7/Documents/AirSim/WayPoints.txt", None)
+    My = WP_Data("WayPoints.txt", None)
 
 
-if My.IsFileOpen: Got_PS = My.ReadData(0,"PS")
+    if My.IsFileOpen: Got_WP = My.ReadData(4,"WP")
 
-if Got_PS:
-    print(Got_PS.X)
-    print(Got_PS.Y)
-    print(Got_PS.Z)
-    print(Got_PS.Xoff)
-    print(Got_PS.Zoff)
-    print(Got_PS.Yoff)
-    print(Got_PS.XR) # not in use
-    print(Got_PS.YR) # not in use
-    print(Got_PS.ZR, "\n")
+    if Got_WP:
+        print(Got_WP.X)
+        print(Got_WP.Y)
+        print(Got_WP.Z)
+        print(Got_WP.Xoff)
+        print(Got_WP.Zoff)
+        print(Got_WP.Yoff, "\n")
+
+
+    if My.IsFileOpen: Got_PS = My.ReadData(0,"PS")
+
+    if Got_PS:
+        print(Got_PS.X)
+        print(Got_PS.Y)
+        print(Got_PS.Z)
+        print(Got_PS.Xoff)
+        print(Got_PS.Zoff)
+        print(Got_PS.Yoff)
+        print(Got_PS.XR) # not in use
+        print(Got_PS.YR) # not in use
+        print(Got_PS.ZR, "\n")
