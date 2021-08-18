@@ -9,6 +9,9 @@ import cv2
 
 import time
 
+
+from ..Parser import WP_Parser
+
 # connect to the AirSim simulator
 client = airsim.MultirotorClient()
 client.confirmConnection()
