@@ -42,16 +42,19 @@ class WP_Data:
 
         if self.IsFileOpen:
 
-            CallName = types + "[" + str(index) + "]"
+            try:
 
-            matching = [_[:-1] for _ in self.Data if CallName in _]
+                CallName = types + "[" + str(index) + "]"
 
-            Values = [_.split("=")[1] for _ in matching]
+                matching = [_[:-1] for _ in self.Data if CallName in _]
 
-            struct = WP_Struct(types=="WP", Values)
+                Values = [_.split("=")[1] for _ in matching]
 
-            return struct
+                struct = WP_Struct(types=="WP", Values)
 
+                return struct
+
+            except: return False
         else: return False
 
 
@@ -70,7 +73,7 @@ class WP_Data:
 My = WP_Data("WayPoints.txt", None)
 
 
-if My.IsFileOpen: Got_WP = My.ReadData(0,"WP")
+if My.IsFileOpen: Got_WP = My.ReadData(4,"WP")
 
 if Got_WP:
     print(Got_WP.X)
