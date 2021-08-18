@@ -53,7 +53,7 @@ if WPP.IsFileOpen:
             print(new.Zoff)
             print(new.Yoff, "\n")
 
-            client.moveToPositionAsync(new.XoFF, new.Yoff, -new.Zoff, 5).join()
+            client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
 
 
 
@@ -62,9 +62,14 @@ if WPP.IsFileOpen:
             break
 
     new = WPP.ReadData(0, "WP")
-    client.moveToPositionAsync(new.XoFF, new.Yoff, -new.Zoff, 5).join()
+    client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
+    
+    client.hoverAsync().join()
+    
+    client.landAsync().join()
 
-        
+# client.armDisarm(False)
+# client.enableApiControl(False)
 
 
 # airsim.wait_key('Press any key to takeoff')
