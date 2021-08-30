@@ -18,7 +18,7 @@ client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 
-# wind = airsim.Vector3r(0,-13,0)
+# wind = airsim.Vector3r(-15,0,0)
 # client.simSetWind(wind)
 
 
