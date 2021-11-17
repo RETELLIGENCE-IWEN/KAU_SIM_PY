@@ -39,8 +39,8 @@ client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 
-# wind = airsim.Vector3r(-1,0,0)
-# client.simSetWind(wind)
+wind = airsim.Vector3r(-1,0,0)
+client.simSetWind(wind)
 
 
 client.takeoffAsync().join()
@@ -57,16 +57,6 @@ docs = os.path.join(docs, "AirSim")
 docs = os.path.join(docs, "WayPoints.txt")
 print(docs)
 
-
-
-
-
-
-
-client.moveByVelocityAsync(0, 0, 5, 10).join()
-
-
-"""
 WPP = WP_Parser.WP_Data(docs, None)
 if WPP.IsFileOpen:
 
@@ -84,7 +74,8 @@ if WPP.IsFileOpen:
             print(new.Zoff)
             print(new.Yoff, "\n")
 
-            way_points.append([int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1])
+            client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
+
 
 
 
@@ -92,28 +83,11 @@ if WPP.IsFileOpen:
             break
 
     new = WPP.ReadData(0, "WP")
-    way_points.append([int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1])
-
-#    client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
-   
-   
-   
-   
-   
-   
-   
+    client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
+    
     client.hoverAsync().join()
     
     client.landAsync().join()
-
-    """
-
-
-client.hoverAsync().join()
-
-client.landAsync().join()
-
-
 
 # client.armDisarm(False)
 # client.enableApiControl(False)
