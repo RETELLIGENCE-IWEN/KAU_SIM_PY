@@ -63,10 +63,10 @@ print(docs)
 
 
 
-client.moveByVelocityAsync(0, 0, 5, 10).join()
+# client.moveByVelocityAsync(0, 0, 5, 10).join()
 
 
-"""
+# """
 WPP = WP_Parser.WP_Data(docs, None)
 if WPP.IsFileOpen:
 
@@ -85,7 +85,7 @@ if WPP.IsFileOpen:
             print(new.Yoff, "\n")
 
             way_points.append([int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1])
-
+            client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
 
 
         else:
@@ -94,7 +94,7 @@ if WPP.IsFileOpen:
     new = WPP.ReadData(0, "WP")
     way_points.append([int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1])
 
-#    client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
+    client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
    
    
    
@@ -102,11 +102,11 @@ if WPP.IsFileOpen:
    
    
    
-    client.hoverAsync().join()
+    # client.hoverAsync().join()
     
-    client.landAsync().join()
+    # client.landAsync().join()
 
-    """
+    # """
 
 
 client.hoverAsync().join()
