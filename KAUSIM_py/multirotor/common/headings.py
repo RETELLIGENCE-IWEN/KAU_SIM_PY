@@ -24,3 +24,8 @@ EMERGENCY_LANDING = "EMERGENCY_LANDING"
 WAYPOINT_REACHED = "WAYPOINT_REACHED"
 RUNNING_STATE = "RUNNING_STATE"
 # 0: Normal, 1: Time Out, 2: Location Out
+
+
+#Custom
+Desired_Wind = "Desired_Wind"
+Desired_Error_Strength = "Desired_Error_Strength"
