@@ -9,7 +9,7 @@ class Server:
 
     def __init__(self, name:str, host: str, port: Optional[int] = 22) -> None:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        
         self.name = name
         self.host = host
         self.port = port
@@ -43,6 +43,9 @@ class Server:
                         self.received_data.append(data)
         except ConnectionAbortedError:
             pass
+        except KeyboardInterrupt:
+            self.clean()
+            raise
         print(f"{self.name} stopped receiving")
 
     def get(self) -> Optional[bytes]:
@@ -53,9 +56,13 @@ class Server:
         return data
 
     def start(self):
-        self.socket.bind((self.host, self.port))
-        self.socket.listen(5)
-        self.running = True
+        try:
+            self.socket.bind((self.host, self.port))
+            self.socket.listen(5)
+            self.running = True
+        except KeyboardInterrupt:
+            self.clean()
+            raise
 
     def clean(self):
         print(f"{self.name} cleaning")

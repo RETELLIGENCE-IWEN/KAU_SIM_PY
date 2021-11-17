@@ -87,11 +87,11 @@ class System:
         """
         self.event_manager.subscribe(
             Events.MissionStart, self.on_mission_start)
-        # self.event_manager.subscribe(
-            # Events.MissionFinished, self.on_mission_finished)
+        self.event_manager.subscribe(
+            Events.MissionFinished, self.on_mission_finished)
 
-        # self.event_manager.subscribe(Events.TakeOff, self.on_takeoff)
-        # self.event_manager.subscribe(Events.Landing, self.on_landing)
+        self.event_manager.subscribe(Events.TakeOff, self.on_takeoff)
+        self.event_manager.subscribe(Events.Landing, self.on_landing)
 
         self.event_manager.subscribe(
             Events.LWinParamReceived, self.on_l_win_param_received)
@@ -113,37 +113,44 @@ class System:
         """
         프로토콜이 파싱한 데이터의 이름-> 함수로 매핑하고 실행
         """
+        last_check = None
+        try:
+            while self.running:
+                start = datetime.datetime.now()
 
-        while self.running:
-            start = datetime.datetime.now()
+                encoded = self.connection.get()
+                if (encoded):
+                    data_list = self.protocol.decode(encoded)
+                    self.receive_from_connection(data_list)
+                encoded = self.drone_connection.get()
+                if (encoded):
+                    data_list = self.protocol.decode(encoded)
+                    self.receive_from_drone(data_list)
+                
+                if self.mission_started:
+                    if last_check:
+                        elapsed = (datetime.datetime.now() - last_check).total_seconds()
+                        if elapsed >= self.location_manager.check_period:
+                            self.event_manager.publish(Events.LocationCheckTime)
+                            last_check=datetime.datetime.now()
+                    else:
+                        last_check = datetime.datetime.now()
 
-            encoded = self.connection.get()
-            if (encoded):
-                data_list = self.protocol.decode(encoded)
-                self.receive_from_connection(data_list)
-            encoded = self.drone_connection.get()
-            if (encoded):
-                data_list = self.protocol.decode(encoded)
-                self.receive_from_drone(data_list)
+                    if self.waypoint_manager.mission_finished():
+                        self.event_manager.publish(Events.MissionFinished)
+                    else:
+                        self.send_running_state()
 
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            
-            if self.mission_started:
-                if elapsed >= self.location_manager.check_period:
-                    self.event_manager.publish(Events.LocationCheckTime, elapsed)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                remaining = self.desired_time_per_cycle - elapsed
 
-                if self.waypoint_manager.mission_finished():
-                    self.event_manager.publish(Events.MissionFinished)
+                if remaining < 0:
+                    print("Warning: System is running slower than desired cps")
                 else:
-                    self.send_running_state()
-
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            remaining = self.desired_time_per_cycle - elapsed
-
-            if remaining < 0:
-                print("Warning: System is running slower than desired cps")
-            else:
-                time.sleep(remaining)
+                    time.sleep(remaining)
+        except KeyboardInterrupt:
+            self.connection.clean()
+            raise
 
     def receive_from_connection(self, data_list: List[Tuple[str, Any]]):
         for name, value in data_list:
@@ -163,6 +170,9 @@ class System:
             if name == WAYPOINTS:
                 self.event_manager.publish(Events.WaypointsReceived, value)
 
+            if name == MISSION_START:
+                self.event_manager.publish(Events.MissionStart)
+                self.event_manager.publish(Events.TakeOff)
            
 
     def receive_from_drone(self, data_list: List[Tuple[str, Any]]):
@@ -171,9 +181,6 @@ class System:
 
             if name == GPS_POSITION:
                 self.event_manager.publish(Events.GPSReceived, value)
-
-            if name == WAYPOINT_REACHED:
-                self.event_manager.publish(Events.WaypointReached) 
                 
     """이벤트 처리 부분"""
 
@@ -201,6 +208,9 @@ class System:
 
         if not self.mission_started:
             return
+        
+        if self.waypoint_manager.waypoint_reached(self.current_position):
+            self.event_manager.publish(Events.WaypointReached, self.current_position)
 
     def on_waypoint_reached(self, gps: np.ndarray):
         print(f"Waypoint {self.waypoint_manager.current_waypoint()} reached")
@@ -212,16 +222,23 @@ class System:
             self.drone_connection.send(data)
             self.event_manager.publish(Events.EmergencyLanding)
         self.time_manager.update_check_time()
-
+        self.location_manager.record_time()
         self.waypoint_manager.to_next_waypoint()
+        
+        if self.waypoint_manager.current_waypoint_index == len(self.waypoint_manager.waypoints):
+            self.event_manager.publish(Events.MissionFinished)
+            return
+        self.send_waypoint()
 
-    def on_location_check_time(self, elapsed_time: float):
-
+    def on_location_check_time(self):
+        self.direction_vector = self.waypoint_manager.waypoint2vector(
+            self.waypoint_manager.current_waypoint(), self.current_position)
+        
         if not self.location_manager.in_range(
-            elapsed_time,
             self.current_position,
             self.waypoint_manager.last_waypoint(),
-            self.direction_vector
+            self.direction_vector,
+            self.waypoint_manager.current_waypoint()
         ):
             data = self.protocol.encode(1, RUNNING_STATE)
             self.drone_connection.send(data)
@@ -230,7 +247,18 @@ class System:
     def on_mission_start(self):
         self.mission_started = True
         self.waypoint_manager.start_mission()
+        self.location_manager.record_time()
+        self.send_waypoint()
         
+        data = self.protocol.encode(self.time_manager.desired_velocity, DESIRED_VELOCITY)
+        self.drone_connection.send(data)
+    
+    def on_mission_finished(self):
+        print("Mission Finished")
+        self.mission_started = False
+        self.on_landing()
+        self.stop()
+    
     def on_emergency_landing(self):
         print("Emergency landing")
         data = self.protocol.encode(1, EMERGENCY_LANDING)
@@ -242,7 +270,22 @@ class System:
         self.drone_connection.send(data)
 
     def stop(self):
+        self.running = False
         self.drone_connection.clean()
         self.connection.clean()
-        self.running = False
     
+    def send_waypoint(self):
+        encoded = self.protocol.encode_point(self.waypoint_manager.current_waypoint())
+        data = self.protocol.encode(encoded, NEXT_WAYPOINT)
+        self.drone_connection.send(data)
+        
+    def on_takeoff(self):
+        print("Sending takeoff to drone")
+        data = self.protocol.encode(1, TAKEOFF)
+        self.drone_connection.send(data)
+    
+    def on_landing(self):
+        print("Sending landing to drone")
+        data = self.protocol.encode(1, LAND)
+        self.drone_connection.send(data)
+        
