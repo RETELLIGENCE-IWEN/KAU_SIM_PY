@@ -157,7 +157,7 @@ class System:
 
     def receive_from_connection(self, data_list: List[Tuple[str, Any]]):
         for name, value in data_list:
-            print(f"RP Received {name} from server")
+            #print(f"RP Received {name} from server")
             if name in L_WIN_PARAM_NAMES:
                 self.event_manager.publish(
                     Events.LWinParamReceived, name, value)
@@ -180,7 +180,7 @@ class System:
 
     def receive_from_drone(self, data_list: List[Tuple[str, Any]]):
         for name, value in data_list:
-            print(f"RP Received {name} from drone")
+            #print(f"RP Received {name} from drone")
 
             if name == GPS_POSITION:
                 self.event_manager.publish(Events.GPSReceived, value)
@@ -207,7 +207,7 @@ class System:
     def on_gps_received(self, encoded_gps_position: bytes):
         gps_position = self.protocol.decode_point(encoded_gps_position)
         self.current_position = gps_position
-        print(f"Current gps: {self.current_position}")
+        #print(f"Current gps: {self.current_position}")
 
         if not self.mission_started:
             return

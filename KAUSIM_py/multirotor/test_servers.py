@@ -147,10 +147,14 @@ class DroneServer(Server):
                                 elif value == 1:
                                     print(f"Location Window Out {value}")
                                     self.emergency_landing()
+                                    self.clean()
+                                    return
                                     
                                 elif value == 2: 
                                     print(f"Time Window Out {value}")
                                     self.emergency_landing()
+                                    self.clean()
+                                    return
                             
                             if name == DESIRED_VELOCITY:
                                 print(f"Received desired velocity: {value}")
@@ -188,7 +192,7 @@ class DroneServer(Server):
     def on_update(self):
         if self.waypoint is not None and self.velocity:
             print(f"Moving to {self.waypoint} with vel: {self.velocity}")
-            self.client.moveToPositionAsync(*self.waypoint, self.velocity * 1.01)
+            self.client.moveToPositionAsync(*self.waypoint, self.velocity * 1.05)
             #print(f"Moved to {self.waypoint} with vel: {self.velocity}")
     
     def randomize_gps(self, gps: np.ndarray) -> np.ndarray:
@@ -197,19 +201,23 @@ class DroneServer(Server):
     def landing(self):
         print("Now Lowering")
         self.client.moveToPositionAsync(*self.position[:2], 1, 3).join()
-        time.sleep(20)
+        time.sleep(5)
         print("Now Hovering")
         self.client.hoverAsync().join()
         print("Now Landing")
         self.client.landAsync()
         self.client.armDisarm(True)
+        self.running_state = -1
     
     def emergency_landing(self):
+        self.landing()
+        """
         print("Now Hovering")
         self.client.hoverAsync().join()
         print("Now Landing")
         self.client.landAsync()
         self.client.armDisarm(True)
+        """
 
     def parse_wind(self, value: str) -> np.ndarray:
         # remove ()
@@ -252,7 +260,7 @@ if __name__ == "__main__":
     from common.headings import *
     from common.protocol import Protocol
 
-    IP = "127.0.0.1"
+    IP = "192.168.9.10"
     DRONE_PORT = 19875
     SERVER_PORT = 19876
 
@@ -272,28 +280,51 @@ if __name__ == "__main__":
         [0,0,-10],
         [5, -3,-11],
         [11, -6, -12],
-        [23, -12, -12],
+        [20, -11, -12],
+        [33, -12, -12],
         [43, -12, -12],
         [63, -12, -12],
+        [73, -12, -12],
         [83, -12, -12],
+        [93, -12, -12],
         [103, -12, -12],
         [113, -12, -12],
-        [125, -12, -12],
+        [118, -16, -12],
+        [125, -22, -12],
         [125, -32, -12],
+        [125, -42, -12],
         [125, -52, -12],
+        [125, -62, -12],
         [125, -72, -12],
-        [125, -92, -12],
-        [125, -112, -12],
+        [125, -82, -12],
+        [123, -92, -12],
+        [120, -98, -12],
+        [115, -105, -12],
+        [110, -110, -12],
         [105, -112, -12],
+        [95, -112, -12],
         [85, -112, -12],
+        [75, -112, -12],
         [65, -112, -12],
+        [55, -112, -12],
         [45, -112, -12],
-        [25, -112, -12],
+        [35, -107, -12],
+        [31, -105, -12],
+        [28, -102, -12],
+        [25, -97, -12],
         [25, -92, -12],
+        [25, -82, -12],
         [25, -72, -12],
+        [25, -62, -12],
         [25, -52, -12],
+        [25, -42, -12],
         [25, -32, -12],
-        [0, 0 ,-12]        
+        [25, -22, -12],
+        [25, -12, -12],
+        [15, -12, -12],
+        [10, -5, -12],
+        [5, -5, -12],
+        [0, 0 ,-12]   
     ])
     
     waypoints = t_protocol.encode_waypoints(waypoints)
@@ -303,7 +334,7 @@ if __name__ == "__main__":
         [
             (WAYPOINTS, waypoints),
             (DESIRED_VELOCITY, 5.),
-            (WINDOW_SIZE, 10.),
+            (WINDOW_SIZE, 15.),
             (LOW_OFFSET, 0.9),
             (HIGH_OFFSET, 1.11),
             (COMMON_ERROR, 5.),
@@ -314,13 +345,13 @@ if __name__ == "__main__":
         ],
         IP,
         SERVER_PORT,
-        period=.3
+        period=.3 # Do not change. Too fast transmission caused error
     )
     drone = DroneServer(
         "Drone",
         .3,
         0,
-        1,
+        0,
         client,
         IP,
         DRONE_PORT

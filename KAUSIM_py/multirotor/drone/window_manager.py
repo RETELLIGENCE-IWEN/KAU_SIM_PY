@@ -30,7 +30,7 @@ class LocationWindowManager:
             distance_to_current_wp = np.linalg.norm(current_waypoint - current_position)
             
             #print(f"Start Point: {start_waypoint}")
-            temp = (datetime.now() - self.check_time).total_seconds() - 2
+            temp = (datetime.now() - self.check_time).total_seconds() #- 1
             elapsed_time = temp if temp > 0 else 0
             #print(f"DirVec: {direction_vector} DesVel: {self.desired_velocity} t: {elapsed_time}")
             
@@ -38,8 +38,8 @@ class LocationWindowManager:
             E_location = start_waypoint + (direction_vector * E_travel_distance)
             #print(f"Checking Location-Des: {E_location}, Real: {current_position}")
             diff = np.linalg.norm(current_position - E_location)
-            diff = distance_to_current_wp if diff > distance_to_current_wp else diff
-            print(f"Location Difference: {diff}")
+            #diff = distance_to_current_wp if diff > distance_to_current_wp else diff
+            print(f"Location Difference: {diff:.2f}")
             return diff <= self.window_size
         else:
             return True
@@ -86,7 +86,7 @@ class TimeWindowManager:
             
             #print(f"Checking Time-Des: {low}~{E_time}~{high}, Real: {elapsed_time}")
             self.last_check_time = datetime.now()
-            print(f"Time Window: {low}~{high}, Current: {elapsed_time}")
+            print(f"Time Window: {low:.2f}~{high:.2f}, Current: {elapsed_time:.2f}")
             return low <= elapsed_time <= high
         
         else: # init
