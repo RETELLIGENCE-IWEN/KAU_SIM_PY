@@ -32,6 +32,41 @@ class Protocol:
         }
         self.type2str_map = {v: k for k, v in self.str2type_map.items()}
 
+    def desired_wind_decode(self, x: bytes, encoding: Optional[str] = "utf-8") -> List[Tuple[str, Any]]:
+        """I fucked up. Use this for environment connections only. Delete when possible"""
+        values: List[Tuple[Name, Any]] = []
+
+        string = x.decode(encoding=encoding)
+        for entry in string.split(Protocol.VALUE_TOKEN)[1:]:
+            splitted = entry.split("(")
+            
+            splitted.append("float")  # 있으면 해당 값으로 타입 사용, 없으면 float
+
+            name = splitted[0][:-1]  # 이름
+            type_ = str
+            value = type_(splitted[1][:-1])
+            values.append((name, value))
+
+        return values
+    
+    def desired_error_decode(self, x: bytes, encoding: Optional[str] = "utf-8") -> List[Tuple[str, Any]]:
+        """I fucked up. Use this for environment connections only. Delete when possible"""
+        values: List[Tuple[Name, Any]] = []
+
+        string = x.decode(encoding=encoding)
+        for entry in string.split(Protocol.VALUE_TOKEN)[1:]:
+            splitted = entry.split("-")
+            
+            splitted.append("float")  # 있으면 해당 값으로 타입 사용, 없으면 float
+
+            name = splitted[0]  # 이름
+            type_ = int
+            value = type_(splitted[1])
+            values.append((name, value))
+
+        return values
+    
+
     def decode(self, x: bytes, encoding: Optional[str] = "utf-8") -> List[Tuple[str, Any]]:
         values: List[Tuple[Name, Any]] = []
 

@@ -49,8 +49,7 @@ class TestServer(Server):
                     elapsed = 0.
 
             self.clean()
-
-
+    
 class DroneServer(Server):
 
     def __init__(
@@ -59,8 +58,9 @@ class DroneServer(Server):
         gps_period: float,
         mean: float,
         sigma: float,
+        client,
         host: str,
-        port: Optional[int] = 22
+        port: Optional[int] = 22,        
     ) -> None:
         super().__init__(name, host, port=port)
 
@@ -71,22 +71,7 @@ class DroneServer(Server):
         
         self.waypoint = None
         self.running_state : int = 0
-        
-        self.client = airsim.MultirotorClient()
-        self.client.confirmConnection()
-        self.client.enableApiControl(True)
-        self.client.armDisarm(True)
-        
-        self.client.takeoffAsync().join()
-        """
-        s = datetime.now()
-        self.client.moveToPositionAsync(-100, -100,-100, 5)
-        e = (datetime.now() - s).total_seconds()
-        time.sleep(5)
-        self.client.moveToPositionAsync(100, -100,-100, 5)
-        
-        print(e)
-        """
+        self.client = client        
 
         self.mean = mean
         self.sigma = sigma
@@ -94,105 +79,144 @@ class DroneServer(Server):
     def start(self):
         super().start()
 
-        conn, addr = self.socket.accept()
-        elapsed = 0.
+        conn1, addr = self.socket.accept()
+        print(f"Connected from {addr}")
+        conn2, addr = self.socket.accept()
+        print(f"Connected from {addr}")
+        
         running_state_print_interval = 5 #s
-        timeout = 10
+        elapsed = 0.
         run_state_start = datetime.now()
+        timeout = 5
         timeout_start = datetime.now()
 
-        with conn:
-            print(f"Connected from {addr}")
-            self.start_receiving(conn)
+        with conn2:
+            self.start_receiving(conn1)
+            self.start_receiving(conn2)
+            try:
+                while conn2 and self.running_state == 0:
+                    timeout_elapsed = (datetime.now() - timeout_start).total_seconds()
+                    if timeout_elapsed > timeout and self.takeoff_state:
+                        print(f"GPS Time OUT from no running state")
+                        break
+                    
+                    start = datetime.now()
+                    encoded = self.get()
+                    if encoded:
+                        # I messed up
+                        if Desired_Wind in str(encoded):
+                            data = self.protocol.desired_wind_decode(encoded)
+                        elif Desired_Error_Strength in str(encoded):
+                            data = self.protocol.desired_error_decode(encoded)
+                        else:
+                            data = self.protocol.decode(encoded)
+                        
+                        for name, value in data:
 
-            while conn and self.running_state == 0:
-                timeout_elapsed = (datetime.now() - timeout_start).total_seconds()
-                if timeout_elapsed > timeout:
-                    break
+                            # This should be moved to other places
+                            if name == Desired_Wind:
+                                decoded = self.parse_wind(value)
+                                print(f"Setting wind to {decoded}")
+                                wind = airsim.Vector3r(*decoded)
+                                self.client.simSetWind(wind)
+                            
+                            # This also should be moved to other places
+                            if name == Desired_Error_Strength:
+                                print(f"Setting error strength to {value}")
+                                self.sigma = value
+
+                            if name == TAKEOFF:
+                                self.takeoff_state = True
+                                print("Taking Off")
+
+                            if name == LAND:
+                                self.takeoff_state = False
+                                self.landing()
+
+                                print("Landing")
+
+                            if name == RUNNING_STATE:
+                                timeout_start = datetime.now()
+                                new_start = datetime.now()
+                                self.running_state = value
+                                if (new_start - run_state_start).total_seconds() > running_state_print_interval:
+                                    print(f"Running state: {value}")
+                                    run_state_start = new_start
+                                    
+                                if value == 0: pass # normal
+                                elif value == 1:
+                                    print(f"Location Window Out {value}")
+                                    self.emergency_landing()
+                                    
+                                elif value == 2: 
+                                    print(f"Time Window Out {value}")
+                                    self.emergency_landing()
+                            
+                            if name == DESIRED_VELOCITY:
+                                print(f"Received desired velocity: {value}")
+                                self.velocity = value
+                                self.on_update()
+                            
+                            if name == NEXT_WAYPOINT:
+                                print(f"Received Next Waypoint: {value}")
+                                self.waypoint = self.protocol.decode_point(value)
+                                self.on_update()
+
+                    step_elapsed = (datetime.now() - start).total_seconds()
+
+                    elapsed += step_elapsed
+                    if elapsed >= self.gps_period:
+                        _position = self.client.simGetVehiclePose().position
+                        self.position = np.array([_position.x_val, _position.y_val, _position.z_val])
+                        #print("--------", self.position)
+                        
+                        pos = self.randomize_gps(self.position)
+                        pos = self.protocol.encode_point(pos)
+                        byte_data = self.protocol.encode(pos, GPS_POSITION)
+                        
+                        if conn2:
+                            #print("-------Sending GPS")
+                            conn2.sendall(byte_data)
+
+                        elapsed = 0.
+            except:
+                self.clean()
+                raise
                 
-                start = datetime.now()
-                encoded = self.get()
-                if encoded:
-                    data = self.protocol.decode(encoded)
-                    
-                    for name, value in data:
-
-                        if name == TAKEOFF:
-                            self.takeoff_state = True
-                            print("Taking Off")
-
-                        if name == LAND:
-                            self.takeoff_state = False
-                            self.landing()
-
-                            print("Landing")
-
-                        if name == RUNNING_STATE:
-                            timeout_start = datetime.now()
-                            new_start = datetime.now()
-                            self.running_state = value
-                            if (new_start - run_state_start).total_seconds() > running_state_print_interval:
-                                print(f"Running state: {value}")
-                                run_state_start = new_start
-                                
-                            if value == 0: pass # normal
-                            elif value == 1:
-                                print(f"Location Window Out {value}")
-                                self.landing()
-                                
-                            elif value == 2: 
-                                print(f"Time Window Out {value}")
-                                self.landing()
-                        
-                        if name == DESIRED_VELOCITY:
-                            print(f"Received desired velocity: {value}")
-                            self.velocity = value
-                            self.on_update()
-                        
-                        if name == NEXT_WAYPOINT:
-                            print(f"Received Next Waypoint: {value}")
-                            self.waypoint = self.protocol.decode_point(value)
-                            self.on_update()
-
-                step_elapsed = (datetime.now() - start).total_seconds()
-
-                elapsed += step_elapsed
-                if elapsed >= self.gps_period:
-                    _position = self.client.simGetVehiclePose().position
-                    self.position = np.array([_position.x_val, _position.y_val, _position.z_val])
-                    print("--------", self.position)
-                    
-                    pos = self.position
-                    #pos = self.randomize_gps(self.position)
-                    pos = self.protocol.encode_point(pos)
-                    byte_data = self.protocol.encode(pos, GPS_POSITION)
-                    
-                    if conn:
-                        print("-------Sending GPS")
-                        conn.sendall(byte_data)
-
-                    elapsed = 0.
-                    
             self.clean()
     
     def on_update(self):
         if self.waypoint is not None and self.velocity:
             print(f"Moving to {self.waypoint} with vel: {self.velocity}")
-            self.client.moveToPositionAsync(*self.waypoint, self.velocity * 1.05)
-            print(f"Moved to {self.waypoint} with vel: {self.velocity}")
+            self.client.moveToPositionAsync(*self.waypoint, self.velocity * 1.01)
+            #print(f"Moved to {self.waypoint} with vel: {self.velocity}")
     
     def randomize_gps(self, gps: np.ndarray) -> np.ndarray:
         return gps + np.random.normal(loc=self.mean, scale=self.sigma, size=(3,))
 
     def landing(self):
-        print("Now Hovering")
+        print("Now Lowering")
         self.client.moveToPositionAsync(*self.position[:2], 1, 3).join()
-        time.sleep(10)
+        time.sleep(20)
+        print("Now Hovering")
         self.client.hoverAsync().join()
         print("Now Landing")
-        self.client.landAsync().join()
+        self.client.landAsync()
         self.client.armDisarm(True)
-        
+    
+    def emergency_landing(self):
+        print("Now Hovering")
+        self.client.hoverAsync().join()
+        print("Now Landing")
+        self.client.landAsync()
+        self.client.armDisarm(True)
+
+    def parse_wind(self, value: str) -> np.ndarray:
+        # remove ()
+        stripped = value[1:-1]
+        splitted = stripped.split(",")
+        in_list = list(map(lambda x: float(x), splitted))
+        return np.array(in_list)
 
 def get_waypoints():
     home = os.path.expanduser('~')
@@ -226,25 +250,30 @@ def get_waypoints():
 
 if __name__ == "__main__":
     from common.headings import *
-    import numpy as np
     from common.protocol import Protocol
 
     IP = "127.0.0.1"
     DRONE_PORT = 19875
     SERVER_PORT = 19876
 
-    t_protocol = Protocol()
+    
+    client = airsim.MultirotorClient()
+    client.confirmConnection()
+    client.enableApiControl(True)
+    client.armDisarm(True)
 
+    t_protocol = Protocol()
+        
+    client.takeoffAsync().join() # Start ENV before takeoff
+    
     #waypoints = get_waypoints()[:-1]
     waypoints = np.array([
         [0,0,0],
-        [0,0,-12],
+        [0,0,-10],
+        [5, -3,-11],
         [11, -6, -12],
         [23, -12, -12],
         [43, -12, -12],
-        
-    ])
-    """
         [63, -12, -12],
         [83, -12, -12],
         [103, -12, -12],
@@ -254,8 +283,18 @@ if __name__ == "__main__":
         [125, -52, -12],
         [125, -72, -12],
         [125, -92, -12],
-        [125, -112, -12]
-        """
+        [125, -112, -12],
+        [105, -112, -12],
+        [85, -112, -12],
+        [65, -112, -12],
+        [45, -112, -12],
+        [25, -112, -12],
+        [25, -92, -12],
+        [25, -72, -12],
+        [25, -52, -12],
+        [25, -32, -12],
+        [0, 0 ,-12]        
+    ])
     
     waypoints = t_protocol.encode_waypoints(waypoints)
 
@@ -282,6 +321,7 @@ if __name__ == "__main__":
         .3,
         0,
         1,
+        client,
         IP,
         DRONE_PORT
     )
@@ -289,5 +329,9 @@ if __name__ == "__main__":
     ts_thread = threading.Thread(target=test_server.start)
     drone_thread = threading.Thread(target=drone.start)
 
-    ts_thread.start()
+    
     drone_thread.start()
+    ready = ""
+    while ready != "ready":
+        ready = input("If env connection done, enter ready: ")
+    ts_thread.start()

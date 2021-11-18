@@ -148,6 +148,9 @@ class System:
                     print("Warning: System is running slower than desired cps")
                 else:
                     time.sleep(remaining)
+            
+            self.connection.clean()
+            
         except KeyboardInterrupt:
             self.connection.clean()
             raise
@@ -231,6 +234,10 @@ class System:
         self.send_waypoint()
 
     def on_location_check_time(self):
+        if self.current_position is None:
+            print("No current location given, passing locatio check")
+            return
+        
         self.direction_vector = self.waypoint_manager.waypoint2vector(
             self.waypoint_manager.current_waypoint(), self.current_position)
         
@@ -245,6 +252,7 @@ class System:
             self.event_manager.publish(Events.EmergencyLanding)
 
     def on_mission_start(self):
+        print(f"Starting Mission")
         self.mission_started = True
         self.waypoint_manager.start_mission()
         self.location_manager.record_time()
@@ -275,7 +283,9 @@ class System:
         self.connection.clean()
     
     def send_waypoint(self):
-        encoded = self.protocol.encode_point(self.waypoint_manager.current_waypoint())
+        waypoint = self.waypoint_manager.current_waypoint()
+        print(f"Sending waypoint: {waypoint}")
+        encoded = self.protocol.encode_point(waypoint)
         data = self.protocol.encode(encoded, NEXT_WAYPOINT)
         self.drone_connection.send(data)
         
