@@ -22,25 +22,34 @@ desired_speed  = 5
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 # connect to the AirSim simulator
 client = airsim.MultirotorClient()
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 
-wind = airsim.Vector3r(-1,0,0)
-client.simSetWind(wind)
+
+
+
+SetWind = 0
+SetCollision = False
+
+# 12 mph
+# wind = airsim.Vector3r(-8.5,-8.5,0)
+
+# 17 mph
+# wind = airsim.Vector3r(-12,-12,0)
+wind = airsim.Vector3r(17,0,0)
+
+# 21.2 mph
+# wind = airsim.Vector3r(-15,-15,0)
+
+# 24 mph
+# wind = airsim.Vector3r(0,-17,0)
+
+if SetWind : client.simSetWind(wind)
+
+
 
 
 client.takeoffAsync().join()
@@ -67,14 +76,22 @@ if WPP.IsFileOpen:
         if new:
             con += 1
 
-            print(new.X)
-            print(new.Y)
-            print(new.Z)
-            print(new.Xoff)
-            print(new.Zoff)
-            print(new.Yoff, "\n")
+            print("Proceeding to Waypoint [", con, "]")
+            # print(new.X)
+            # print(new.Y)
+            # print(new.Z)
+            print(" - X : ", new.Xoff)
+            print(" - Y : ", new.Yoff)
+            print(" - Z : ", new.Zoff, "\n")
 
             client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
+
+
+            #simulate collision via exteame wind
+            if con == 2:
+
+                wind = airsim.Vector3r(-100,-100,0)
+                if SetCollision : client.simSetWind(wind)
 
 
 
@@ -83,10 +100,12 @@ if WPP.IsFileOpen:
             break
 
     new = WPP.ReadData(0, "WP")
+    print("Proceeding to StartingPoint")
     client.moveToPositionAsync(int(new.Xoff), int(new.Yoff), int(new.Zoff)*-1, 5).join()
     
     client.hoverAsync().join()
     
+    print("Landing")
     client.landAsync().join()
 
 # client.armDisarm(False)
