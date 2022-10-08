@@ -1,14 +1,7 @@
 import setup_path 
 import airsim
 
-import numpy as np
 import os
-import tempfile
-import pprint
-import cv2
-
-import time
-
 
 import WP_Parser
 
